@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gemini Render Chat 😑</title>
+  <style>
+    body { font-family: sans-serif; background:#111; color:#eee; padding:20px; }
+    #chat { max-width:600px; margin:auto; border:1px solid #333; padding:16px; border-radius:12px; background:#1a1a1a; }
+    .msg { margin:10px 0; }
+    .user { color:#9cf; }
+    .ai { color:#cfc; }
+    form { display:flex; margin-top:12px; }
+    input { flex:1; padding:10px; border-radius:8px; border:none; }
+    button { margin-left:8px; padding:10px 16px; border:none; border-radius:8px; background:#5b7cff; color:#fff; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <h1>Chat with Gemini 😑</h1>
+  <div id="chat"></div>
+  <form id="chat-form">
+    <input id="prompt" type="text" placeholder="Type a message..." required />
+    <button type="submit">Send</button>
+  </form>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const form = document.getElementById("chat-form");
+    const promptInput = document.getElementById("prompt");
+
+    function addMsg(role, text) {
+      const div = document.createElement("div");
+      div.className = "msg " + role;
+      div.textContent = role.toUpperCase() + ": " + text;
+      chat.appendChild(div);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = promptInput.value.trim();
+      if (!msg) return;
+      addMsg("user", msg);
+      promptInput.value = "";
+      addMsg("ai", "Thinking...");
+
+      try {
+        const resp = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: msg })
+        });
+        const data = await resp.json();
+        chat.lastChild.textContent = "AI: " + data.reply;
+      } catch (err) {
+        chat.lastChild.textContent = "AI: Error - " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
