@@ -51,7 +51,6 @@ body {
   cursor: pointer;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 @media (max-width: 480px) {
   #chat-container { padding: 0.5rem; }
   .message { max-width: 90%; font-size: 0.9rem; }
@@ -65,12 +64,13 @@ body {
   <input type="text" id="prompt" placeholder="Type your message...">
   <button onclick="sendMessage()">Send</button>
 </div>
+
 <script>
 const container = document.getElementById("chat-container");
 
 function addMessage(text, sender) {
   const div = document.createElement("div");
-  div.className = message ${sender};
+  div.className = "message " + sender;
   div.textContent = text;
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
@@ -88,10 +88,13 @@ async function sendMessage() {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: text })
+      body: JSON.stringify({ 
+        prompt: text,
+        password: localStorage.getItem("auth") // include stored password
+      })
     });
 
-    if (!res.ok) throw new Error("Server error");
+    if (!res.ok) throw new Error("Server rejected request");
 
     const data = await res.json();
     addMessage(data.reply, "bot");
