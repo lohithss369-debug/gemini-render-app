@@ -1,107 +1,296 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat</title>
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: #f0f2f5;
-}
-#chat-container {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.message {
-  padding: 0.6rem 1rem;
-  border-radius: 15px;
-  max-width: 80%;
-  word-wrap: break-word;
-  animation: fadeIn 0.5s;
-}
-.user { align-self: flex-end; background: #2575fc; color: white; }
-.bot { align-self: flex-start; background: #e5e5ea; color: black; }
-#input-container {
-  display: flex;
-  padding: 0.5rem;
-  background: #fff;
-}
-#input-container input {
-  flex: 1;
-  padding: 0.6rem 1rem;
-  border-radius: 20px;
-  border: 1px solid #ccc;
-}
-#input-container button {
-  margin-left: 0.5rem;
-  padding: 0.6rem 1rem;
-  border: none;
-  border-radius: 20px;
-  background: #6a11cb;
-  color: white;
-  cursor: pointer;
-}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@media (max-width: 480px) {
-  #chat-container { padding: 0.5rem; }
-  .message { max-width: 90%; font-size: 0.9rem; }
-  #input-container input, #input-container button { padding: 0.5rem; }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Chat</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #f0f2f5;
+      transition: background 1s ease-in-out;
+    }
+    header {
+      background: linear-gradient(90deg, #6a11cb, #2575fc);
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.2rem;
+    }
+    header button {
+      background: white;
+      color: #2575fc;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #chat-container {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .message {
+      padding: 0.6rem 1rem;
+      border-radius: 15px;
+      max-width: 80%;
+      word-wrap: break-word;
+      animation: fadeIn 0.4s;
+    }
+    .user {
+      align-self: flex-end;
+      background: #2575fc;
+      color: white;
+    }
+    .bot {
+      align-self: flex-start;
+      background: #e5e5ea;
+      color: black;
+      white-space: pre-wrap; /* preserve line breaks */
+    }
+    .typing {
+      font-style: italic;
+      color: gray;
+    }
+    .timestamp {
+      font-size: 0.7rem;
+      color: gray;
+      margin-top: 2px;
+      text-align: right;
+    }
+    #input-container {
+      display: flex;
+      padding: 0.5rem;
+      background: #fff;
+      position: sticky;
+      bottom: 0;
+    }
+    #input-container input {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+    }
+    #input-container button {
+      margin-left: 0.5rem;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 20px;
+      background: #6a11cb;
+      color: white;
+      cursor: pointer;
+    }
+    #settings-panel {
+      position: fixed;
+      top: 0;
+      right: -300px;
+      width: 300px;
+      height: 100%;
+      background: white;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+      padding: 1rem;
+      transition: right 0.3s ease-in-out;
+      z-index: 10;
+    }
+    #settings-panel.open {
+      right: 0;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
 </head>
 <body>
-<div id="chat-container"></div>
-<div id="input-container">
-  <input type="text" id="prompt" placeholder="Type your message...">
-  <button onclick="sendMessage()">Send</button>
-</div>
+  <header>
+    <span>Gemini Chat</span>
+    <div>
+      <button onclick="toggleSettings()">⚙️ Settings</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
 
-<script>
-const container = document.getElementById("chat-container");
+  <div id="chat-container"></div>
 
-function addMessage(text, sender) {
-  const div = document.createElement("div");
-  div.className = "message " + sender;
-  div.textContent = text;
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-}
+  <div id="input-container">
+    <input type="text" id="prompt" placeholder="Type your message...">
+    <button onclick="sendMessage()">Send</button>
+  </div>
 
-async function sendMessage() {
-  const input = document.getElementById("prompt");
-  const text = input.value.trim();
-  if (!text) return;
+  <!-- Settings panel -->
+  <div id="settings-panel">
+    <h3>Settings</h3>
+    <p><b>Character Mode</b></p>
+    <select id="characterSelect">
+      <option value="none">None</option>
+      <option value="char1">Character 1</option>
+      <option value="char2">Character 2</option>
+      <option value="char3">Character 3</option>
+    </select>
+    <p><b>Apply:</b></p>
+    <label><input type="radio" name="mode" value="off" checked> Off</label><br>
+    <label><input type="radio" name="mode" value="voice"> Voice Only</label><br>
+    <label><input type="radio" name="mode" value="bg"> Background Only</label><br>
+    <label><input type="radio" name="mode" value="both"> Both</label>
+  </div>
 
-  addMessage(text, "user");
-  input.value = "";
+  <script>
+    const container = document.getElementById("chat-container");
+    const input = document.getElementById("prompt");
 
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        prompt: text,
-        password: localStorage.getItem("auth") // include stored password
-      })
+    // Character data
+    const characters = {
+      char1: {
+        sounds: ["/sounds/sound1.mp3"],
+        backgrounds: ["/images/pic1.jpg","/images/pic2.jpg"]
+      },
+      char2: {
+        sounds: ["/sounds/sound2.mp3"],
+        backgrounds: ["/images/pic3.jpg","/images/pic1.jpg"]
+      },
+      char3: {
+        sounds: ["/sounds/sound3.mp3"],
+        backgrounds: ["/images/pic2.jpg","/images/pic3.jpg"]
+      }
+    };
+
+    let bgIndex = 0;
+    let bgInterval;
+
+    function addMessage(text, sender) {
+      const div = document.createElement("div");
+      div.className = "message " + sender;
+      div.innerHTML = formatReply(text); // formatted reply
+      container.appendChild(div);
+
+      const ts = document.createElement("div");
+      ts.className = "timestamp";
+      ts.textContent = new Date().toLocaleTimeString();
+      div.appendChild(ts);
+
+      container.scrollTop = container.scrollHeight;
+
+      // Play sound if enabled
+      const char = document.getElementById("characterSelect").value;
+      const mode = document.querySelector("input[name='mode']:checked").value;
+      if (sender === "bot" && char !== "none" && (mode==="voice" || mode==="both")) {
+        const soundList = characters[char].sounds;
+        new Audio(soundList[0]).play();
+      }
+    }
+
+    function showTyping() {
+      const div = document.createElement("div");
+      div.className = "message bot typing";
+      div.id = "typing";
+      div.textContent = "Bot is typing...";
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function removeTyping() {
+      const typingDiv = document.getElementById("typing");
+      if (typingDiv) typingDiv.remove();
+    }
+
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMessage(text, "user");
+      input.value = "";
+
+      showTyping();
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            prompt: text,
+            password: localStorage.getItem("auth")
+          })
+        });
+
+        removeTyping();
+
+        if (!res.ok) throw new Error("Server rejected request");
+
+        const data = await res.json();
+        addMessage(data.reply, "bot");
+        saveChat();
+      } catch (err) {
+        removeTyping();
+        addMessage("(Error: " + err.message + ")", "bot");
+      }
+    }
+
+    // Format bot reply (markdown-lite)
+    function formatReply(text) {
+      if (!text) return "(no reply)";
+      return text
+        .replace(/\n/g, "<br>")
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+        .replace(/\*(.*?)\*/g, "<i>$1</i>")
+        .replace(/`(.*?)`/g, "<code>$1</code>");
+    }
+
+    // Persistent chat
+    function saveChat() {
+      localStorage.setItem("chatHistory", container.innerHTML);
+    }
+    function loadChat() {
+      const history = localStorage.getItem("chatHistory");
+      if (history) container.innerHTML = history;
+    }
+
+    // Background rotation
+    function startBackgroundRotation() {
+      clearInterval(bgInterval);
+      const char = document.getElementById("characterSelect").value;
+      const mode = document.querySelector("input[name='mode']:checked").value;
+      if (char === "none" || (mode !== "bg" && mode !== "both")) return;
+
+      const bgList = characters[char].backgrounds;
+      document.body.style.backgroundImage = `url('${bgList[0]}')`;
+      bgIndex = 0;
+
+      bgInterval = setInterval(() => {
+        bgIndex = (bgIndex+1) % bgList.length;
+        document.body.style.backgroundImage = `url('${bgList[bgIndex]}')`;
+      }, 10000);
+    }
+
+    // Settings panel
+    function toggleSettings() {
+      document.getElementById("settings-panel").classList.toggle("open");
+    }
+
+    document.getElementById("characterSelect").addEventListener("change", startBackgroundRotation);
+    document.querySelectorAll("input[name='mode']").forEach(radio =>
+      radio.addEventListener("change", startBackgroundRotation)
+    );
+
+    // Logout
+    function logout() {
+      localStorage.clear();
+      window.location.href = "/";
+    }
+
+    // Send with Enter
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") sendMessage();
     });
 
-    if (!res.ok) throw new Error("Server rejected request");
-
-    const data = await res.json();
-    addMessage(data.reply, "bot");
-  } catch (err) {
-    addMessage("(Error: " + err.message + ")", "bot");
-  }
-}
-</script>
+    // Init
+    loadChat();
+    input.focus();
+  </script>
 </body>
 </html>
