@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: black;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    .bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      background-size: cover;
+      background-position: center;
+      transition: opacity 1.5s ease-in-out;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 0;
+    }
+
+    .box {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      color: white;
+      animation: fadeUp 1.5s ease;
+      width: 90%;
+      max-width: 360px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    input {
+      padding: 0.7rem;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 1rem;
+      width: 100%;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 0.7rem 1.2rem;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(90deg, #6a11cb, #2575fc);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    #msg {
+      margin-top: 1rem;
+      color: red;
+      font-weight: bold;
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      50% { transform: translateX(10px); }
+      75% { transform: translateX(-10px); }
+      100% { transform: translateX(0); }
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 480px) {
+      .box { padding: 1.5rem; }
+      input, button { font-size: 0.9rem; padding: 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bg1" class="bg"></div>
+  <div id="bg2" class="bg"></div>
+  <div class="overlay"></div>
+
+  <div class="box">
+    <h2>Secure Access</h2>
+    <p>Authorized Users Only</p>
+    <input type="password" id="password" placeholder="Enter Password">
+    <br>
+    <button onclick="login()">Login</button>
+    <p id="msg"></p>
+  </div>
+
+  <script>
+    const images = [
+      "/images/pic1.jpg",
+      "/images/pic2.jpg",
+      "/images/pic3.jpg"
+    ];
+
+    const mediaMap = {
+      "/images/pic1.jpg": "/sounds/sound1.mp3",
+      "/images/pic2.jpg": "/sounds/sound2.mp3",
+      "/images/pic3.jpg": "/sounds/sound3.mp3"
+    };
+
+    let currentIndex = Math.floor(Math.random() * images.length);
+    let bg1 = document.getElementById("bg1");
+    let bg2 = document.getElementById("bg2");
+    let showingBg1 = true;
+
+    function setBackground(el, img) {
+      el.style.backgroundImage = `url('${img}')`;
+      el.style.opacity = 1;
+    }
+
+    function changeBackground() {
+      let nextIndex;
+      do {
+        nextIndex = Math.floor(Math.random() * images.length);
+      } while (nextIndex === currentIndex);
+      currentIndex = nextIndex;
+
+      let nextImg = images[currentIndex];
+      if (showingBg1) {
+        setBackground(bg2, nextImg);
+        bg1.style.opacity = 0;
+        bg2.style.opacity = 1;
+      } else {
+        setBackground(bg1, nextImg);
+        bg2.style.opacity = 0;
+        bg1.style.opacity = 1;
+      }
+      showingBg1 = !showingBg1;
+    }
+
+    setBackground(bg1, images[currentIndex]);
+    setInterval(changeBackground, 10000);
+
+    async function login() {
+      const password = document.getElementById("password").value;
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+      if (res.ok) {
+        localStorage.setItem("auth", password);
+        const currentImg = images[currentIndex];
+        const sound = new Audio(mediaMap[currentImg]);
+        sound.play();
+        setTimeout(() => {
+          window.location.href = "/chat.html";
+        }, 2000);
+      } else {
+        document.getElementById("msg").innerText = "Wrong password!";
+        document.querySelector(".box").style.animation = "shake 0.4s";
+        setTimeout(() => { document.querySelector(".box").style.animation = ""; }, 400);
+      }
+    }
+  </script>
+</body>
+</html>
