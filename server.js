@@ -1,20 +1,42 @@
 import express from "express";
 import compression from "compression";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(compression());
 app.use(express.json());
+
+// Login route
+app.post("/login", (req, res) => {
+  const { password } = req.body;
+  if (password === process.env.APP_PASSWORD) {
+    return res.json({ success: true });
+  }
+  return res.status(401).json({ success: false, message: "Invalid password" });
+});
+
+// Serve login page as default
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
 app.use(express.static("public"));
 
 // Proxy route for Gemini
 app.post("/api/chat", async (req, res) => {
   try {
-    const { prompt } = req.body;
-    if (!prompt) return res.status(400).json({ error: "Missing prompt" });
+    const { prompt, password } = req.body;
+    if (password !== process.env.APP_PASSWORD) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
     const resp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
