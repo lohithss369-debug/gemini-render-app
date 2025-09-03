@@ -39,13 +39,14 @@
       height:64px; display:flex; align-items:center; justify-content:space-between;
       padding:0 16px; background:var(--header-bg); color:var(--header-text);
       box-shadow:0 2px 6px rgba(0,0,0,0.08); z-index:40;
+      flex-shrink:0;
     }
     header .title{font-weight:600; font-size:18px;}
     .settings-btn{
       background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--header-text);
     }
 
-    /* -- background containers for smooth fade -- */
+    /* -- background layers for crossfade -- */
     .bg-layer{
       position:fixed; inset:0; z-index:0; pointer-events:none;
       background-position:center;background-size:cover;background-repeat:no-repeat;
@@ -53,7 +54,6 @@
     }
     .bg-layer.show{ opacity:1; }
 
-    /* optional translucent overlay for readability */
     .overlay{
       position:fixed; inset:0; background:linear-gradient(rgba(255,255,255,0.15), rgba(255,255,255,0.15));
       z-index:1; pointer-events:none;
@@ -61,7 +61,7 @@
     }
     [data-theme="dark"] .overlay{ background:linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)); }
 
-    /* -- sidebar drawer -- */
+    /* -- sidebar -- */
     .sidebar{
       position:fixed; top:0; left:-320px; width:320px; height:100%; background:var(--glass-bg);
       backdrop-filter: blur(8px); box-shadow:2px 0 12px rgba(0,0,0,0.18); padding:16px; z-index:45;
@@ -74,7 +74,6 @@
 
     .sidebar h3{ margin:10px 0 6px; font-size:14px; color:var(--header-text); }
     .sidebar label{ display:block; margin:8px 0; font-size:13px; color:var(--header-text); }
-
     .control-row{ display:flex; gap:8px; align-items:center; margin:8px 0; }
     .control-row select, .control-row input[type="checkbox"]{ cursor:pointer; }
 
@@ -82,7 +81,6 @@
     .chat-wrap{ position:relative; flex:1; display:flex; flex-direction:column; overflow:hidden; z-index:10; }
     .chat-scroll{ flex:1; overflow:auto; padding:18px 16px 16px; display:flex; flex-direction:column; gap:12px; }
 
-    /* message bubble */
     .msg{
       max-width:78%; padding:10px 14px; border-radius:18px; position:relative; word-wrap:break-word;
       white-space:pre-wrap; box-shadow:0 2px 6px rgba(0,0,0,0.06);
@@ -98,14 +96,13 @@
 
     @keyframes fadeInUp{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;} }
 
-    /* -- typing indicator -- */
     .typing{ display:flex; gap:6px; align-items:center; padding:8px; }
     .dot{ width:7px;height:7px;background:var(--bot-text);border-radius:50%; opacity:.25; animation:dot 1s infinite; }
     .dot:nth-child(2){ animation-delay:.2s } .dot:nth-child(3){ animation-delay:.4s }
     @keyframes dot{ 0%{opacity:.2; transform:translateY(0);} 50%{opacity:1; transform:translateY(-6px);} 100%{opacity:.2; transform:translateY(0);} }
 
-    /* -- footer input (fixed) -- */
-    .footer{ display:flex; gap:10px; align-items:center; padding:12px; border-top:1px solid rgba(0,0,0,0.06); background:var(--header-bg); z-index:30; }
+    /* footer input */
+    .footer{ display:flex; gap:10px; align-items:center; padding:12px; border-top:1px solid rgba(0,0,0,0.06); background:var(--header-bg); z-index:30; flex-shrink:0; }
     .input{ flex:1; display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.85); padding:8px 12px; border-radius:999px; border:1px solid rgba(0,0,0,0.06); }
     [data-theme="dark"] .input{ background: rgba(0,0,0,0.35); }
     .input input{ flex:1; border:none; outline:none; font-size:15px; background:transparent; padding:6px 0; }
@@ -115,14 +112,11 @@
     @media (max-width:640px){
       .sidebar{ width:90%; left:-100%; }
     }
-
-    /* small helper */
     .small{ font-size:12px; opacity:0.8; }
   </style>
 </head>
 <body>
 
-  <!-- Background crossfade layers -->
   <div id="bgA" class="bg-layer"></div>
   <div id="bgB" class="bg-layer"></div>
   <div class="overlay"></div>
@@ -132,10 +126,12 @@
     <div class="title">Gemini Chat</div>
     <div>
       <button class="settings-btn" id="openSettings">⚙️</button>
+      <button class="small" id="copyAllBtn">Copy All</button>
+      <button class="small" id="exportBtn">Export</button>
     </div>
   </header>
 
-  <!-- Sidebar / Drawer -->
+  <!-- Sidebar -->
   <aside id="sidebar" class="sidebar" aria-hidden="true">
     <button class="back" id="closeSettings">⬅ Back</button>
 
@@ -147,12 +143,10 @@
         <option value="char2">Character 2</option>
         <option value="char3">Character 3</option>
       </select>
+      <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.35">
     </div>
-
-    <label class="small"><input type="checkbox" id="voiceBgToggle"> Voice & Background (On / Off)</label>
-
-    <h3>Background Options</h3>
-    <p class="small">When enabled, character backgrounds & sound are applied.</p>
+    <label class="small"><input type="checkbox" id="voiceBgToggle"> Voice & Background</label>
+    <label class="small"><input type="checkbox" id="ttsToggle"> Enable TTS</label>
 
     <h3>Theme</h3>
     <label class="small"><input type="checkbox" id="themeToggle"> Dark mode</label>
@@ -169,7 +163,7 @@
     <div id="chatScroll" class="chat-scroll" role="log" aria-live="polite"></div>
   </div>
 
-  <!-- Footer input -->
+  <!-- Footer -->
   <div class="footer">
     <div class="input">
       <input id="prompt" placeholder="Type a message — try emojis 😊" autocomplete="off" />
@@ -177,28 +171,17 @@
     <button id="sendBtn" class="send-btn">➤</button>
   </div>
 
-  <!-- marked for Markdown -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
   <script>
-  // ======== Config / Resources (replace with your actual files) ========
+  // ==== Config ====
   const resources = {
-    char1: {
-      images: ['/images/char1-1.jpg','/images/char1-2.jpg','/images/char1-3.jpg','/images/char1-4.jpg'],
-      audio: '/sounds/char1-loop.mp3'
-    },
-    char2: {
-      images: ['/images/char2-1.jpg','/images/char2-2.jpg','/images/char2-3.jpg','/images/char2-4.jpg'],
-      audio: '/sounds/char2-loop.mp3'
-    },
-    char3: {
-      images: ['/images/char3-1.jpg','/images/char3-2.jpg','/images/char3-3.jpg','/images/char3-4.jpg'],
-      audio: '/sounds/char3-loop.mp3'
-    },
+    char1: { images: ['/images/char1-1.jpg','/images/char1-2.jpg'], audio: '/sounds/char1-loop.mp3' },
+    char2: { images: ['/images/char2-1.jpg','/images/char2-2.jpg'], audio: '/sounds/char2-loop.mp3' },
+    char3: { images: ['/images/char3-1.jpg','/images/char3-2.jpg'], audio: '/sounds/char3-loop.mp3' },
     defaultBackgroundCSS: getComputedStyle(document.documentElement).getPropertyValue('--default-bg') || 'linear-gradient(120deg,#fdfbfb, #ebedee)'
   };
 
-  // ======== State ========
+  // ==== Elements ====
   const chatScroll = document.getElementById('chatScroll');
   const promptEl = document.getElementById('prompt');
   const sendBtn = document.getElementById('sendBtn');
@@ -207,9 +190,13 @@
   const sidebar = document.getElementById('sidebar');
   const charSelect = document.getElementById('characterSelect');
   const voiceBgToggle = document.getElementById('voiceBgToggle');
+  const ttsToggle = document.getElementById('ttsToggle');
   const themeToggle = document.getElementById('themeToggle');
   const bgA = document.getElementById('bgA');
   const bgB = document.getElementById('bgB');
+  const volumeSlider = document.getElementById('volumeSlider');
+  const copyAllBtn = document.getElementById('copyAllBtn');
+  const exportBtn = document.getElementById('exportBtn');
 
   let bgVisibleA = true;
   let bgInterval = null;
@@ -217,258 +204,109 @@
   let currentIndex = 0;
   let audioPlayer = null;
 
-  // set initial background to default gradient
   document.body.style.background = resources.defaultBackgroundCSS;
 
-  // ======== Sidebar handlers ========
+  // ==== Sidebar toggles ====
   openSettings.addEventListener('click', ()=>{ sidebar.classList.add('open'); sidebar.setAttribute('aria-hidden','false'); });
   closeSettings.addEventListener('click', ()=>{ sidebar.classList.remove('open'); sidebar.setAttribute('aria-hidden','true'); });
 
-  // theme toggle
   themeToggle.addEventListener('change', ()=> {
     if(themeToggle.checked) document.body.setAttribute('data-theme','dark');
     else document.body.removeAttribute('data-theme');
   });
 
-  // voice+bg toggle single switch
-  voiceBgToggle.addEventListener('change', ()=> {
-    if(!voiceBgToggle.checked){
-      stopCharacterEffects();
-    } else {
-      startCharacterEffects();
-    }
-  });
+  // ==== Character / audio ====
+  charSelect.addEventListener('change', ()=> { currentChar = charSelect.value; restartEffectsIfNeeded(); });
+  voiceBgToggle.addEventListener('change', ()=> { restartEffectsIfNeeded(); });
 
-  // character changed
-  charSelect.addEventListener('change', ()=>{
-    currentChar = charSelect.value;
-    if(voiceBgToggle.checked) {
-      startCharacterEffects();
-    }
-  });
+  volumeSlider.addEventListener('input', ()=>{ if(audioPlayer) audioPlayer.volume = parseFloat(volumeSlider.value); });
 
-  // ======== Background crossfade utilities ========
-  function showImageAt(idx){
-    const char = currentChar;
-    if(!char || char === 'none') return;
-    const imgs = resources[char].images;
-    if(!imgs || imgs.length === 0) return;
-    const url = imgs[idx % imgs.length];
-    // alternate bgA/bgB for smooth crossfade
-    if(bgVisibleA){
-      bgB.style.backgroundImage = `url('${url}')`;
-      bgB.classList.add('show');
-      bgA.classList.remove('show');
-    } else {
-      bgA.style.backgroundImage = `url('${url}')`;
-      bgA.classList.add('show');
-      bgB.classList.remove('show');
+  function restartEffectsIfNeeded(){
+    stopAllEffects();
+    if(currentChar!=='none' && voiceBgToggle.checked){
+      startBackgroundCycle();
+      startAudioLoop();
     }
-    bgVisibleA = !bgVisibleA;
   }
 
-  function startBackgroundCycle(){
-    clearInterval(bgInterval);
-    currentIndex = 0;
-    showImageAt(currentIndex);
-    bgInterval = setInterval(()=>{
-      currentIndex = (currentIndex + 1) % resources[currentChar].images.length;
-      showImageAt(currentIndex);
-    }, 10000); // 10s
-  }
-
-  function stopBackgroundCycle(){
-    clearInterval(bgInterval);
-    // gracefully hide bg layers and revert to default gradient
-    bgA.classList.remove('show');
-    bgB.classList.remove('show');
-    // ensure default gradient (use CSS variable or fallback)
-    // use requestAnimationFrame after fade to make it smooth
-    setTimeout(()=> {
-      document.body.style.background = resources.defaultBackgroundCSS;
-    }, 300); // wait for fade-out
-  }
-
-  // ======== Audio utilities ========
   function startAudioLoop(){
     stopAudioLoop();
-    if(!currentChar || currentChar === 'none') return;
+    if(currentChar==='none') return;
     const src = resources[currentChar].audio;
     if(!src) return;
     audioPlayer = new Audio(src);
     audioPlayer.loop = true;
-    audioPlayer.volume = 0.35;
-    audioPlayer.play().catch(()=>{/* autoplay may be blocked until user gesture */});
-  }
-  function stopAudioLoop(){
-    if(audioPlayer){ audioPlayer.pause(); audioPlayer = null; }
+    audioPlayer.volume = parseFloat(volumeSlider.value);
+    audioPlayer.play().catch(()=>{});
   }
 
-  // start/stop combined effects
-  function startCharacterEffects(){
-    if(!currentChar || currentChar === 'none'){ return; }
-    startBackgroundCycle();
-    startAudioLoop();
-  }
-  function stopCharacterEffects(){
-    stopBackgroundCycleAndAudio();
-  }
-  function stopBackgroundCycleAndAudio(){
+  function stopAudioLoop(){ if(audioPlayer){ audioPlayer.pause(); audioPlayer=null; } }
+
+  function startBackgroundCycle(){
     stopBackgroundCycle();
-    stopAudioLoop();
+    currentIndex=0; showImageAt(currentIndex);
+    bgInterval = setInterval(()=>{ currentIndex=(currentIndex+1)%resources[currentChar].images.length; showImageAt(currentIndex); },10000);
   }
 
-  // ======== Chat helpers ========
+  function showImageAt(idx){
+    const imgs = resources[currentChar]?.images; if(!imgs || imgs.length===0) return;
+    const url = imgs[idx%imgs.length];
+    if(bgVisibleA){ bgB.style.backgroundImage=`url('${url}')`; bgB.classList.add('show'); bgA.classList.remove('show'); }
+    else { bgA.style.backgroundImage=`url('${url}')`; bgA.classList.add('show'); bgB.classList.remove('show'); }
+    bgVisibleA = !bgVisibleA;
+  }
+
+  function stopBackgroundCycle(){ if(bgInterval){ clearInterval(bgInterval); bgInterval=null; } bgA.classList.remove('show'); bgB.classList.remove('show'); setTimeout(()=>{document.body.style.background=resources.defaultBackgroundCSS;},300); }
+
+  function stopAllEffects(){ stopAudioLoop(); stopBackgroundCycle(); }
+
+  // ==== Chat ====
   function addMessage(text, role='bot'){
-    const wrapper = document.createElement('div');
-    wrapper.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
-
-    // Use marked to parse markdown safely (marked auto-escapes)
-    const html = marked.parse(text || '');
-    wrapper.innerHTML = html;
-
-    // metadata (timestamp + copy)
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    const ts = document.createElement('div'); ts.textContent = new Date().toLocaleTimeString();
-    const cbtn = document.createElement('button'); cbtn.className = 'copy-btn'; cbtn.title = 'Copy message'; cbtn.innerText = '📋';
-    cbtn.onclick = () => { navigator.clipboard.writeText(text || '').then(()=>{/* copied */}); };
-    meta.appendChild(ts); meta.appendChild(cbtn);
+    const wrapper=document.createElement('div'); wrapper.className='msg '+(role==='user'?'user':'bot');
+    wrapper.innerHTML=marked.parse(text||'');
+    const meta=document.createElement('div'); meta.className='meta';
+    const ts=document.createElement('div'); ts.textContent=new Date().toLocaleTimeString();
+    const cbtn=document.createElement('button'); cbtn.className='copy-btn'; cbtn.title='Copy message'; cbtn.innerText='📋';
+    cbtn.onclick=()=>{navigator.clipboard.writeText(text||'');}; meta.appendChild(ts); meta.appendChild(cbtn);
     wrapper.appendChild(meta);
-
-    chatScroll.appendChild(wrapper);
-    chatScroll.scrollTop = chatScroll.scrollHeight;
+    chatScroll.appendChild(wrapper); chatScroll.scrollTop=chatScroll.scrollHeight;
   }
 
   function showTypingIndicator(){
-    const t = document.createElement('div');
-    t.className = 'msg bot typing';
-    t.innerHTML = `<div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
-    chatScroll.appendChild(t);
-    chatScroll.scrollTop = chatScroll.scrollHeight;
-    return t;
+    const t=document.createElement('div'); t.className='msg bot typing';
+    t.innerHTML='<div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+    chatScroll.appendChild(t); chatScroll.scrollTop=chatScroll.scrollHeight; return t;
   }
 
-  // ======== Send message & API ========
   async function sendMessage(){
-    const text = promptElTrim();
-    if(!text) return;
-    // show user message
-    addMessage(text, 'user');
+    const text=promptEl.value.trim(); if(!text) return;
+    addMessage(text,'user'); promptEl.value='';
+    const typingEl=showTypingIndicator();
 
-    // typing indicator
-    const typingEl = showTypingIndicator();
-
-    // send to backend
     try{
-      const res = await fetch('/api/chat', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ prompt: text, password: localStorage.getItem('auth') })
-      });
-      const data = await res.json();
-      // remove typing indicator
-      typingEl.remove();
+      const res=await fetch('/api/chat',{ method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ prompt:text }) });
+      const data=await res.json(); typingEl.remove();
+      const botText=data.reply||'(no reply)'; addMessage(botText,'bot');
 
-      const botText = data.reply || '(no reply)';
-      addMessage(botText, 'bot');
-
-      // if effects enabled, speech synth + background change per reply
-      if(voiceBgToggle.checked && currentChar !== 'none'){
-        // play TTS (use browser TTS)
-        try{
-          const utt = new SpeechSynthesisUtterance(botText);
-          // small tuning — pitch/ rate can be adjusted
-          utt.rate = 1;
-          utt.pitch = 1;
-          speechSynthesis.speak(utt);
-        }catch(e){}
-        // advance background to next image for each reply (cycle)
-        // immediate next image (without waiting for interval)
-        currentIndex = (currentIndex + 1) % resources[currentChar].images.length;
-        showImageAt(currentIndex);
+      if(ttsToggle.checked){
+        if(audioPlayer){ alert('Cannot use TTS while character sound is playing.'); }
+        else{ const utt=new SpeechSynthesisUtterance(botText); speechSynthesis.speak(utt); }
       }
-    }catch(err){
-      typingEl.remove();
-      addMessage('Error: ' + (err.message || 'Network error'), 'bot');
-    }
+      if(voiceBgToggle.checked && currentChar!=='none'){ currentIndex=(currentIndex+1)%resources[currentChar].images.length; showImageAt(currentIndex); }
+    }catch(e){ typingEl.remove(); addMessage('Error: '+(e.message||'Network error'),'bot'); }
   }
 
-  function promptElTrim(){ return promptEl.value ? promptEl.value.trim() : ''; }
-
-  // wire send
   sendBtn.addEventListener('click', sendMessage);
-  promptEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
+  promptEl.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMessage(); } });
 
-  // quick commands used by sidebar
-  function sendQuick(msg){ promptEl.value = msg; sendMessage(); sidebar.classList.remove('open'); }
+  function sendQuick(msg){ promptEl.value=msg; sendMessage(); sidebar.classList.remove('open'); }
 
-  // keyboard focus
-  window.addEventListener('load', ()=>{ promptEl.focus(); });
+  // ==== Copy/Export ====
+  copyAllBtn.addEventListener('click', ()=>{ navigator.clipboard.writeText(chatScroll.innerText); alert('All chat copied!'); });
+  exportBtn.addEventListener('click', ()=>{ const blob=new Blob([chatScroll.innerText],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='chat.txt'; a.click(); });
 
-  // rotation utility when toggling on
-  function rotateBackgroundsOnEnable(){
-    if(!currentChar || currentChar === 'none') return;
-    // set immediate first image then interval handles later
-    currentIndex = 0;
-    showImageAt(currentIndex);
-    // ensure interval running
-    if(bgInterval) clearInterval(bgInterval);
-    bgInterval = setInterval(()=>{
-      currentIndex = (currentIndex + 1) % resources[currentChar].images.length;
-      showImageAt(currentIndex);
-    }, 10000);
-  }
-
-  // Ensure when voiceBgToggle toggled on, we start char effects; when off, reset default
-  voiceBgToggle.addEventListener('change', ()=>{
-    if(voiceBgToggle.checked){
-      currentChar = charSelect.value;
-      if(currentChar && currentChar !== 'none'){
-        rotateBackgroundsOnEnable();
-        startAudioLoop();
-      }
-    } else {
-      // stop everything and revert to default
-      stopBackgroundCycle();
-      stopAudioLoop();
-    }
-  });
-
-  // When character changes and toggle is ON, restart effects for new character
-  charSelect.addEventListener('change', ()=>{
-    currentChar = charSelect.value;
-    if(voiceBgToggle.checked){
-      // show first image of selected char and restart audio
-      stopBackgroundCycle();
-      stopAudioLoop();
-      rotateBackgroundsOnEnable();
-      startAudioLoop();
-    }
-  });
-
-  // helper to stop bg cycle (clear interval + fade out layers)
-  function stopBackgroundCycle(){
-    if(bgInterval){ clearInterval(bgInterval); bgInterval = null; }
-    // fade out layers
-    bgA.classList.remove('show'); bgB.classList.remove('show');
-    // after fade, set body background back to default gradient
-    setTimeout(()=>{ document.body.style.background = resources.defaultBackgroundCSS; }, 300);
-  }
-
-  // small sample: persist chat in localStorage (optional)
-  function saveHistory(){ localStorage.setItem('chat_html_v1', chatScroll.innerHTML); }
-  function loadHistory(){ const h = localStorage.getItem('chat_html_v1'); if(h) chatScroll.innerHTML = h; }
-  window.addEventListener('beforeunload', saveHistory);
-  loadHistory();
-
-  // expose quick function to window so sidebar can call it inline
-  window.sendQuick = sendQuick;
-
-  // initial states
-  currentChar = charSelect.value || 'none';
-  // ensure default CSS background (safe)
-  document.body.style.background = resources.defaultBackgroundCSS;
+  window.sendQuick=sendQuick;
+  window.addEventListener('load',()=>{ promptEl.focus(); });
   </script>
 </body>
 </html>
