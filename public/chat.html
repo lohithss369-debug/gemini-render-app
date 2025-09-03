@@ -62,13 +62,10 @@
     [data-theme="dark"] .overlay{ background:linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)); }
 
     /* -- sidebar -- */
-    .sidebar{
-      position:fixed; top:0; left:-320px; width:320px; height:100%; background:var(--glass-bg);
-      backdrop-filter: blur(8px); box-shadow:2px 0 12px rgba(0,0,0,0.18); padding:16px; z-index:45;
-      transition:left 0.28s cubic-bezier(.2,.9,.3,1);
-      overflow:auto;
-    }
-    .sidebar.open{ left:0; }
+    .sidebar {position: fixed;top: 0;left: 0;width: 320px;height: 100%;background: var(--glass-bg);backdrop-filter: blur(8px);
+     box-shadow: 2px 0 12px rgba(0,0,0,0.18);padding: 16px;z-index: 45;overflow: auto;
+     transform: translateX(-100%);  /* fully hidden */transition: transform 0.28s cubic-bezier(.2,.9,.3,1);}
+    .sidebar.open {transform: translateX(0);  /* slide in */}
     .sidebar .back{ display:inline-block; margin-bottom:12px; padding:8px 10px; border-radius:8px; background:#eee; cursor:pointer; border:none;}
     [data-theme="dark"] .sidebar .back{ background:#333; color:#fff; }
 
@@ -175,9 +172,9 @@
   <script>
   // ==== Config ====
   const resources = {
-    char1: { images: ['/images/char1-1.jpg','/images/char1-2.jpg'], audio: '/sounds/char1-loop.mp3' },
-    char2: { images: ['/images/char2-1.jpg','/images/char2-2.jpg'], audio: '/sounds/char2-loop.mp3' },
-    char3: { images: ['/images/char3-1.jpg','/images/char3-2.jpg'], audio: '/sounds/char3-loop.mp3' },
+    char1: { images: ['images/char1-1.jpg','images/char1-2.jpg','images/char1-3.jpg','images/char1-4.jpg'], audio: '/sounds/char1-loop.mp3' },
+    char2: { images: ['images/char2-1.jpg','images/char2-2.jpg','images/char2-3.jpg','images/char2-4.jpg'], audio: '/sounds/char2-loop.mp3' },
+    char3: { images: ['images/char3-1.jpg','images/char3-2.jpg','images/char3-3.jpg','images/char3-4.jpg'], audio: '/sounds/char3-loop.mp3' },
     defaultBackgroundCSS: getComputedStyle(document.documentElement).getPropertyValue('--default-bg') || 'linear-gradient(120deg,#fdfbfb, #ebedee)'
   };
 
